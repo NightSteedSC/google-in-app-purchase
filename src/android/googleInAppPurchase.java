@@ -179,13 +179,21 @@ public class googleInAppPurchase extends CordovaPlugin implements PurchasesUpdat
     }
 
     private void restoreProducts() {
+
+        Log.d(TAG, "restoreProducts 1: ");
+
         if (billingClient == null) {
             webView.loadUrl("javascript:cordova.fireDocumentEvent('onBillingError',{ 'error':'" + "billingClient is null" + ");");
             return;
         }
+
+        Log.d(TAG, "restoreProducts 2: ");
+
         List<Purchase> list = billingClient.queryPurchases(BillingClient.SkuType.INAPP).getPurchasesList();
         List<Purchase> listsub = billingClient.queryPurchases(BillingClient.SkuType.SUBS).getPurchasesList();
 
+
+        Log.d(TAG, "restoreProducts 3 List: " + list);
 
         if(!list.isEmpty()){
             for (Purchase purchase : list) {

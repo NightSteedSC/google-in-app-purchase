@@ -46,6 +46,9 @@ cordova.define("googleInAppPurchase.googleInAppPurchase", function(require, expo
     exports.consumProduct = function (Purchase, success, error) {
         exec(success, error, 'googleInAppPurchase','consumProduct',[Purchase]);
     };
+    exports.restoreProducts = function (Purchase, success, error) {
+        exec(success, error, 'googleInAppPurchase','restoreProducts',[Purchase]);
+    };
     exports.acknowledgePurchase = function (Purchase , success, error) {
         exec(success, error, 'googleInAppPurchase','acknowledgePurchase',[Purchase]);
     };
