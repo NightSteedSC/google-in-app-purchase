@@ -6,6 +6,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -15,6 +16,7 @@ import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaWebView;
 
 import com.android.billingclient.api.AcknowledgePurchaseParams;
+import com.android.billingclient.api.PurchasesResponseListener;
 import com.android.billingclient.api.AcknowledgePurchaseResponseListener;
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingClientStateListener;
@@ -34,8 +36,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import static java.lang.Integer.parseInt;
+
 ////////////////////////////////////////////////////
-public class googleInAppPurchase extends CordovaPlugin implements PurchasesUpdatedListener, BillingClientStateListener, ConsumeResponseListener, AcknowledgePurchaseResponseListener {
+public class googleInAppPurchase extends CordovaPlugin implements BillingClientStateListener, ConsumeResponseListener {
 
     private static final String TAG = "***** : ";
     public BillingClient billingClient;
@@ -48,28 +52,31 @@ public class googleInAppPurchase extends CordovaPlugin implements PurchasesUpdat
     public final List<Purchase> mPurchases = new ArrayList<>();
     SkuDetailsParams.Builder params;
     public Purchase.PurchasesResult purchaseToRestore;
+    public Integer currentProductType;
 
-    public BillingResult billingResult;
+    public BillingResult billingResult = new BillingResult();
+
+
 
 
     /////////////////////////////////////////////////////////////////////////////
     @Override
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
-        billingResult = new BillingResult();
     }
 
     /////////////////////////////////////////////////////////////////////////////
     @Override//funkcja która łączy się z JS
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-//        initBilling(callbackContext, args);
-
         if (action.equals("purchaseProduct")) {
             cordova.getThreadPool().execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        purchaseProduct(callbackContext, args);
+                        if (billingClient != null) {
+                            purchaseProduct(callbackContext, args);
+                        }
+
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
@@ -80,53 +87,95 @@ public class googleInAppPurchase extends CordovaPlugin implements PurchasesUpdat
         } else if (action.equals("restoreProducts")) {
             restoreProducts();
         } else if (action.equals("consumProduct")) {
-            consumProduct(callbackContext, args);
+            //consumProduct(callbackContext, args);
         } else if (action.equals("acknowledgePurchase")) {
-            acknowledgePurchase(callbackContext, args);
+//            acknowledgePurchase(callbackContext, args);
         }
         return false;  // Returning false results in a "MethodNotFound" error.
     }
 
     //^^^^^^^^^^^^^^^^^^^^^^^^ BILLING PART ^^^^^^^^^^^^^^^^^^^^^^^^\\
 
+
+    private PurchasesResponseListener purchasesResponseListener = new PurchasesResponseListener() {
+        @Override
+        public void onQueryPurchasesResponse(BillingResult billingResult, List<Purchase> list) {
+            Log.d(TAG, "onQueryPurchasesResponse list: " + list);
+            Log.d(TAG, "onQueryPurchasesResponse list: " + list);
+
+            for (Purchase item : list) {
+                Log.d(TAG, "onQueryPurchasesResponse item: " + item);
+                Log.d(TAG, "onQueryPurchasesResponse item.isAcknowledged(): " + item.isAcknowledged());
+//                skuDetailsObject.i
+
+            }
+
+
+        }
+    };
+
+    private PurchasesUpdatedListener purchasesUpdatedListener = new PurchasesUpdatedListener() {
+        @Override
+        public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
+            // To be implemented in a later section.
+            Log.d(TAG, "onPurchasesUpdated : ");
+            Log.d(TAG, "onPurchasesUpdated purchases : " + purchases);
+            Log.d(TAG, "onPurchasesUpdated billingResult code: " + billingResult.getResponseCode());
+            Log.d(TAG, "onPurchasesUpdated currentProductType: " + currentProductType);
+
+            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK
+                    && purchases != null) {
+                for (Purchase purchase : purchases) {
+
+                    if(currentProductType == 1){
+//                        consumeProduct(purchase);
+                    } else if(currentProductType == 0){
+                        acknowledgePurchase(purchase);
+                    }
+
+                    goToUrl("javascript:cordova.fireDocumentEvent('onProductPurchased',{ 'id':'" + purchase.getSkus() + "'});");
+                    goToUrl("javascript:cordova.fireDocumentEvent('onProductUpdated',{ 'id':'" + purchase.getSkus() + ");");
+//                    goToUrl("javascript:cordova.fireDocumentEvent('verifyPurchase', { 'purchase':'" + purchase + "','orderID':'" + purchase.getOrderId() + "','id':'" + purchase.getSku() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'});");
+                }
+            } else if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.USER_CANCELED) {
+                // Handle an error caused by a user cancelling the purchase flow.
+                goToUrl("javascript:cordova.fireDocumentEvent('onBillingError',{ 'error':'" + "User cancelling the purchase flow" + ");");
+                Log.d(TAG, "User cancelling the purchase flow");
+            } else{
+
+            }
+
+
+        }
+    };
+
+
     private void initBilling(final CallbackContext callbackContext, final JSONArray data) throws JSONException {
-        //   Log.d(TAG, "Billing is Ready? : " + billingClient.isReady());
-
-
         billingClient = BillingClient.newBuilder(cordova.getActivity())
-                .setListener(this)
+                .setListener(purchasesUpdatedListener)
                 .enablePendingPurchases()
                 .build();
 
         billingClient.startConnection(this);
 
-        ;
-
         Log.d(TAG, "billingResult getDebugMessage: " + billingResult.getDebugMessage());
         Log.d(TAG, "billingResult getResponseCode: " + billingResult.getResponseCode());
-//        Purchase.PurchasesResult queryPurchases = billingClient.queryPurchases(BillingClient.SkuType.INAPP);
-//        Log.d(TAG, " : "+queryPurchases.getBillingResult());
-//        Log.d(TAG, " : "+queryPurchases.getPurchasesList());
-//        ConsumeParams consumeParams =
-//                ConsumeParams.newBuilder()
-//                        .setPurchaseToken("ocoejalncmieplkjddppccph.AO-J1OzHL-sSvpm32aoisUp_VQdH4DfQfqn2EsxmsGu0s8GQR5mdXlNY5oHLHiScv3XQfRdU1D1PI9b0RrS_qhB_RgoamFJjezxJSlAUIcWG5rAgADTTNho")
-//                        .build();
-//        billingClient.consumeAsync(consumeParams, this::onConsumeResponse);
     }
 
     private void purchaseProduct(final CallbackContext callbackContext, final JSONArray data) throws JSONException {
         String localID = data.getString(0);
         String type = data.getString(1);
+
         if (!billingClient.isReady()) {
             Log.d(TAG, "Billing not initalized, before you purchaseProduct you must to initialize billing");
 
             initBilling(callbackContext, data);
-            webView.loadUrl("javascript:cordova.fireDocumentEvent('onPurchaseFailed',{ 'id':'" + localID + ");");
+            goToUrl("javascript:cordova.fireDocumentEvent('onPurchaseFailed',{ 'id':'" + localID + ");");
             return;
         }
 
         Log.d(TAG, "purchaseProduct ID: " + localID);
-        Log.d(TAG, "Type of product" + type);
+        Log.d(TAG, "purchaseProduct type: " + type);
 
         // INFO
         // Type 2 -> SUBSCRIBE
@@ -134,88 +183,157 @@ public class googleInAppPurchase extends CordovaPlugin implements PurchasesUpdat
         // Type 0 -> NON-CONSUMABLE
 
         // TODO C2 listeners handle
-//        if (type.equals("2")) {
-//            List<String> product = new ArrayList<>();
-//            product.add(localID);
-//            params = SkuDetailsParams.newBuilder().setSkusList(product).setType(BillingClient.SkuType.SUBS);
-//            billingClient.querySkuDetailsAsync(params.build(), this);
-//            return;
-//        } else if (type.equals("1") || type.equals("0")) {
-//
-//            List<String> product = new ArrayList<>();
-//            product.add(localID);
-//            params = SkuDetailsParams.newBuilder().setSkusList(product).setType(BillingClient.SkuType.INAPP);
-//            billingClient.querySkuDetailsAsync(params.build(), this);
-//            return;
-//        } else {
-//            Log.d(TAG, "*** FAIL -> purchaseProduct ");
-//            webView.loadUrl("javascript:cordova.fireDocumentEvent('onPurchaseFailed',{ 'id':'" + localID + ");");
-//            return;
-//        }
+        if (type.equals("2")) {
+            List<String> product = new ArrayList<>();
+            product.add(localID);
+            params = SkuDetailsParams.newBuilder().setSkusList(product).setType(BillingClient.SkuType.SUBS);
+
+            billingClient.querySkuDetailsAsync(params.build(),     new SkuDetailsResponseListener() {
+                @Override
+                public void onSkuDetailsResponse(BillingResult billingResult,
+                                                 List<SkuDetails> skuDetailsList) {
+
+                    Log.d(TAG, "onBillingSetupFinished skuDetailsList: " + skuDetailsList);
+
+                    for (Object skuDetailsObject : skuDetailsList) {
+
+                        skuDetails = (SkuDetails) skuDetailsObject;
+                        goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','IconUrl':'" + skuDetails.getIconUrl() + "','IntroductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','FreeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','OriginalPrice':'" + skuDetails.getOriginalPrice() + "','Title':'" + skuDetails.getTitle() + "','PriceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'});");
+                        BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder().setSkuDetails(skuDetails).build();
+                        Log.d(TAG, "launchBillingFlow: ");
+
+                        int responseCode = billingClient.launchBillingFlow(cordova.getActivity(), billingFlowParams).getResponseCode();
+                        Log.d(TAG, "onBillingSetupFinished responseCode: " + responseCode);
+                    }
+
+                }
+            });
+
+        } else if (type.equals("1") || type.equals("0")) {
+
+            List<String> product = new ArrayList<>();
+            product.add(localID);
+
+            currentProductType = parseInt(type);
+
+            params = SkuDetailsParams.newBuilder().setSkusList(product).setType(BillingClient.SkuType.INAPP);
+
+            billingClient.querySkuDetailsAsync(params.build(),     new SkuDetailsResponseListener() {
+                @Override
+                public void onSkuDetailsResponse(BillingResult billingResult,
+                                                 List<SkuDetails> skuDetailsList) {
+
+                    Log.d(TAG, "onSkuDetailsResponse skuDetailsList: " + skuDetailsList);
+
+                    for (Object skuDetailsObject : skuDetailsList) {
+
+                        skuDetails = (SkuDetails) skuDetailsObject;
+                        goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','IconUrl':'" + skuDetails.getIconUrl() + "','IntroductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','FreeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','OriginalPrice':'" + skuDetails.getOriginalPrice() + "','Title':'" + skuDetails.getTitle() + "','PriceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'});");
+                        BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder().setSkuDetails(skuDetails).build();
+                        Log.d(TAG, "launchBillingFlow: ");
+
+                        int responseCode = billingClient.launchBillingFlow(cordova.getActivity(), billingFlowParams).getResponseCode();
+                        Log.d(TAG, "onSkuDetailsResponse responseCode: " + responseCode);
+                    }
+
+                }
+            });
+
+        } else {
+            Log.d(TAG, "*** FAIL -> purchaseProduct ");
+            goToUrl("javascript:cordova.fireDocumentEvent('onPurchaseFailed',{ 'id':'" + localID + ");");
+            return;
+        }
     }
 
 
     // Method to consume consumable purchases
-    void consumProduct(final CallbackContext callbackContext, final JSONArray data) throws JSONException {
-        String token = data.getString(0);
+    void consumeProduct(Purchase purchase){
         ConsumeParams consumeParams =
                 ConsumeParams.newBuilder()
-                        .setPurchaseToken(token)
+                        .setPurchaseToken(purchase.getPurchaseToken())
                         .build();
-        billingClient.consumeAsync(consumeParams, this::onConsumeResponse);
+
+        ConsumeResponseListener listener = new ConsumeResponseListener() {
+            @Override
+            public void onConsumeResponse(BillingResult billingResult, String purchaseToken) {
+                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                    // Handle the success of the consume operation.
+                }
+            }
+        };
+
+        billingClient.consumeAsync(consumeParams, listener);
 
     }
 
     //Method to acknowledge purchases non-consumable and subs
-    void acknowledgePurchase(final CallbackContext callbackContext, final JSONArray data) throws JSONException {
-        String token = data.getString(0);
 
-        AcknowledgePurchaseParams acknowledgePurchaseParams =
-                AcknowledgePurchaseParams.newBuilder()
-                        .setPurchaseToken(token)
-                        .build();
-        billingClient.acknowledgePurchase(acknowledgePurchaseParams, this::onAcknowledgePurchaseResponse);
+    public AcknowledgePurchaseResponseListener acknowledgePurchaseResponseListener = new AcknowledgePurchaseResponseListener() {
+        @Override
+        public void onAcknowledgePurchaseResponse(BillingResult billingResult) {
+            Log.d(TAG, "*** acknowledgePurchase 3");
+        }
 
+    };
+
+    void acknowledgePurchase(Purchase purchase){
+        Log.d(TAG, "*** acknowledgePurchase");
+
+        if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED) {
+            if (!purchase.isAcknowledged()) {
+                AcknowledgePurchaseParams acknowledgePurchaseParams =
+                        AcknowledgePurchaseParams.newBuilder()
+                                .setPurchaseToken(purchase.getPurchaseToken())
+                                .build();
+                billingClient.acknowledgePurchase(acknowledgePurchaseParams, acknowledgePurchaseResponseListener);
+
+                Log.d(TAG, "*** acknowledgePurchase 2");
+
+            }
+        }
     }
 
     private void restoreProducts() {
 
-        Log.d(TAG, "restoreProducts 1: ");
-
         if (billingClient == null) {
-            webView.loadUrl("javascript:cordova.fireDocumentEvent('onBillingError',{ 'error':'" + "billingClient is null" + ");");
+            goToUrl("javascript:cordova.fireDocumentEvent('onBillingError',{ 'error':'" + "billingClient is null" + ");");
             return;
         }
 
         Log.d(TAG, "restoreProducts 2: ");
 
-        List<Purchase> list = billingClient.queryPurchases(BillingClient.SkuType.INAPP).getPurchasesList();
-        List<Purchase> listsub = billingClient.queryPurchases(BillingClient.SkuType.SUBS).getPurchasesList();
+//        List<Purchase> list = billingClient.queryPurchases(BillingClient.SkuType.INAPP).getPurchasesList();
+//        List<Purchase> listsub = billingClient.queryPurchases(BillingClient.SkuType.SUBS).getPurchasesList();
 
 
-        Log.d(TAG, "restoreProducts 3 List: " + list);
+        billingClient.queryPurchasesAsync(BillingClient.SkuType.INAPP, purchasesResponseListener);
 
-        if(!list.isEmpty()){
-            for (Purchase purchase : list) {
-                webView.loadUrl("javascript:cordova.fireDocumentEvent('verifyPurchase', { 'purchase':'" + purchase + "','id':'" + purchase.getSku() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','orderID':'" + purchase.getOrderId() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'});");
-            }
-        }
 
-        if(!listsub.isEmpty()){
-            for (Purchase purchase : listsub) {
-                webView.loadUrl("javascript:cordova.fireDocumentEvent('verifyPurchase', { 'purchase':'" + purchase + "','id':'" + purchase.getSku() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','orderID':'" + purchase.getOrderId() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'});");
-            }
-        }
+//        Log.d(TAG, "restoreProducts 3 List: " + list);
+//
+//        if(!list.isEmpty()){
+//            for (Purchase purchase : list) {
+//                goToUrl("javascript:cordova.fireDocumentEvent('verifyPurchase', { 'purchase':'" + purchase + "','id':'" + purchase.getSkus() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','orderID':'" + purchase.getOrderId() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'});");
+//            }
+//        }
+//
+//        if(!listsub.isEmpty()){
+//            for (Purchase purchase : listsub) {
+//                goToUrl("javascript:cordova.fireDocumentEvent('verifyPurchase', { 'purchase':'" + purchase + "','id':'" + purchase.getSkus() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','orderID':'" + purchase.getOrderId() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'});");
+//            }
+//        }
 
-        webView.loadUrl("javascript:cordova.fireDocumentEvent('onRestoreCompleted');");
+//        goToUrl("javascript:cordova.fireDocumentEvent('onRestoreCompleted');");
     }
 
 /////////////////////////////////LISTENERY/////////////////////////////////
 
-    @Override
-    public void onAcknowledgePurchaseResponse(@NonNull BillingResult billingResult) {
-        Log.d(TAG, "onAcknowledgePurchaseResponse: ");
-    }
+//    @Override
+//    public void onAcknowledgePurchaseResponse(@NonNull BillingResult billingResult) {
+//        Log.d(TAG, "onAcknowledgePurchaseResponse: ");
+//
+//    }
 
     @Override
     public void onConsumeResponse(BillingResult billingResult, String purchaseToken) {
@@ -226,69 +344,10 @@ public class googleInAppPurchase extends CordovaPlugin implements PurchasesUpdat
     }
 
     @Override
-    public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
-
-        Log.d(TAG, "billingResult.getResponseCode() 2 " + billingResult.getResponseCode());
-        if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK
-                && purchases != null) {
-            for (Purchase purchase : purchases) {
-                webView.loadUrl("javascript:cordova.fireDocumentEvent('onProductPurchased',{ 'id':'" + purchase.getSku() + "'});");
-                webView.loadUrl("javascript:cordova.fireDocumentEvent('onProductUpdated',{ 'id':'" + purchase.getSku() + ");");
-                webView.loadUrl("javascript:cordova.fireDocumentEvent('verifyPurchase', { 'purchase':'" + purchase + "','orderID':'" + purchase.getOrderId() + "','id':'" + purchase.getSku() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'});");
-
-
-            }
-        } else if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.USER_CANCELED) {
-            // Handle an error caused by a user cancelling the purchase flow.
-            webView.loadUrl("javascript:cordova.fireDocumentEvent('onBillingError',{ 'error':'" + "User cancelling the purchase flow" + ");");
-            Log.d(TAG, "User cancelling the purchase flow");
-        } else{
-
-        }
-    }
-
-    @Override
     public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
-        webView.loadUrl("javascript:cordova.fireDocumentEvent('onInitCompleted');");
+
+        goToUrl("javascript:cordova.fireDocumentEvent('onInitCompleted');");
         Log.d(TAG, "onBillingSetupFinished: " + billingResult.getResponseCode());
-
-        List<String> product = new ArrayList<>();
-        product.add("medium_pack");
-        params = SkuDetailsParams.newBuilder().setSkusList(product).setType(BillingClient.SkuType.INAPP);
-
-        billingClient.querySkuDetailsAsync(params.build(),     new SkuDetailsResponseListener() {
-            @Override
-            public void onSkuDetailsResponse(BillingResult billingResult,
-                                             List<SkuDetails> skuDetailsList) {
-                // Process the result.
-
-                Log.d(TAG, "onBillingSetupFinished skuDetailsList: " + skuDetailsList);
-
-            for (Object skuDetailsObject : skuDetailsList) {
-
-                skuDetails = (SkuDetails) skuDetailsObject;
-                webView.loadUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','IconUrl':'" + skuDetails.getIconUrl() + "','IntroductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','FreeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','OriginalPrice':'" + skuDetails.getOriginalPrice() + "','Title':'" + skuDetails.getTitle() + "','PriceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'});");
-                BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder().setSkuDetails(skuDetails).build();
-                Log.d(TAG, "launchBillingFlow: ");
-
-
-                int responseCode = billingClient.launchBillingFlow(cordova.getActivity(), billingFlowParams).getResponseCode();
-
-                Log.d(TAG, "onBillingSetupFinished responseCode: " + responseCode);
-            }
-
-//                BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder()
-//                        .setSkuDetails(skuDetails)
-//                        .build();
-
-
-
-
-            }
-        });
-
-
-
         if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
             restoreProducts();
         }
@@ -296,7 +355,7 @@ public class googleInAppPurchase extends CordovaPlugin implements PurchasesUpdat
 
     @Override
     public void onBillingServiceDisconnected() {
-        webView.loadUrl("javascript:cordova.fireDocumentEvent('onBillingError',{ 'error':'" + "Billing Service Disconnected" + ");");
+        goToUrl("javascript:cordova.fireDocumentEvent('onBillingError',{ 'error':'" + "Billing Service Disconnected" + ");");
         Log.d(TAG, "onBillingServiceDisconnected: ");
     }
 
@@ -305,7 +364,7 @@ public class googleInAppPurchase extends CordovaPlugin implements PurchasesUpdat
 //        if (list != null) {
 //            for (Object skuDetailsObject : list) {
 //                skuDetails = (SkuDetails) skuDetailsObject;
-//                webView.loadUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','IconUrl':'" + skuDetails.getIconUrl() + "','IntroductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','FreeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','OriginalPrice':'" + skuDetails.getOriginalPrice() + "','Title':'" + skuDetails.getTitle() + "','PriceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'});");
+//                goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','IconUrl':'" + skuDetails.getIconUrl() + "','IntroductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','FreeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','OriginalPrice':'" + skuDetails.getOriginalPrice() + "','Title':'" + skuDetails.getTitle() + "','PriceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'});");
 //                BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder().setSkuDetails(skuDetails).build();
 //                Log.d(TAG, "launchBillingFlow: ");
 //
@@ -344,4 +403,15 @@ public class googleInAppPurchase extends CordovaPlugin implements PurchasesUpdat
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.d(TAG, "onActivityResult: ");
     }
+
+    public void goToUrl(String url){
+        // fragment using getActivity ()
+        cordova.getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                webView.loadUrl(url);
+            }
+        });
+    }
+
 }

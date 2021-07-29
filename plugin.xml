@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="google-in-app-purchase" version="1.0.3"
+<plugin id="google-in-app-purchase" version="1.0.5"
 xmlns="http://apache.org/cordova/ns/plugins/1.0" 
 xmlns:android="http://schemas.android.com/apk/res/android">
-	<name>NSG_GoogleMobileServices</name>
+	<name>GoogleInAppPurchase</name>
 	<js-module name="googleInAppPurchase" src="www/googleInAppPurchase.js">
 		<clobbers target="cordova.plugins.googleInAppPurchase" />
 	</js-module>
@@ -16,8 +16,9 @@ xmlns:android="http://schemas.android.com/apk/res/android">
 		<config-file parent="/*" target="AndroidManifest.xml"></config-file>
 		<source-file src="src/android/googleInAppPurchase.java" target-dir="src/org/apache/cordova/googleInAppPurchase" />
 
-		<framework src="com.android.billingclient:billing:3.0.0" />
+		<framework src="com.android.billingclient:billing:4.0.0" />
 		<framework src="androidx.annotation:annotation:1.1.0" />
+		<framework src="org.jetbrains:annotations:15.0" />
 	</platform>
 	
 </plugin>
