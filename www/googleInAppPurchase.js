@@ -42,8 +42,8 @@
     exports.purchaseProduct = function (ID, TYPE, success, error) {
         exec(success, error, 'googleInAppPurchase','purchaseProduct',[ID,TYPE]);
     };
-    exports.consumProduct = function (Purchase, success, error) {
-        exec(success, error, 'googleInAppPurchase','consumProduct',[Purchase]);
+    exports.consumeProduct = function (Purchase, success, error) {
+        exec(success, error, 'googleInAppPurchase','consumeProduct',[Purchase]);
     };
     exports.restoreProducts = function (Purchase, success, error) {
         exec(success, error, 'googleInAppPurchase','restoreProducts',[Purchase]);
