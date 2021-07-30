@@ -1,6 +1,6 @@
     var exec = require('cordova/exec');
 
-//^^^^^^^^^^^^^^^^^^^^^^^^ CONDITIONS PART ^^^^^^^^^^^^^^^^^^^^^^^^\\
+    //^^^^^^^^^^^^^^^^^^^^^^^^ CONDITIONS PART ^^^^^^^^^^^^^^^^^^^^^^^^\\
 
     exports.onPurchaseFailed = function (callback, success, error){
         document.addEventListener('onPurchaseFailed', function(data_){callback(data_);});
@@ -12,7 +12,7 @@
         document.addEventListener('onProductPurchased', function(data_){callback(data_);});
     }
     exports.onRestoreCompleted = function (callback, success, error){
-        document.addEventListener('onRestoreCompleted', function(){callback();});
+        document.addEventListener('onRestoreCompleted', function(data_){callback(data_);});
     }
     exports.onInitCompleted = function (callback, success, error){
         document.addEventListener('onInitCompleted', function(){callback();});
@@ -34,7 +34,7 @@
             callback(data_);});
     }
 
-//^^^^^^^^^^^^^^^^^^^^^^^^ ACTION PART ^^^^^^^^^^^^^^^^^^^^^^^^\\
+    //^^^^^^^^^^^^^^^^^^^^^^^^ ACTION PART ^^^^^^^^^^^^^^^^^^^^^^^^\\
 
     exports.Initialize = function (success, error) {
         exec(success, error, 'googleInAppPurchase','initBilling');

@@ -103,7 +103,13 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
                 Log.d(TAG, "onQueryPurchasesResponse purchase: " + purchase);
                 Log.d(TAG, "onQueryPurchasesResponse purchase.isAcknowledged(): " + purchase.isAcknowledged());
 
-                goToUrl("javascript:cordova.fireDocumentEvent('restoreProducts', { 'purchase':'" + purchase + "','id':'" + purchase.getSkus() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','orderID':'" + purchase.getOrderId() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'})");
+
+                String productId = purchase.getSkus().get(0);
+                Log.d(TAG, "onQueryPurchasesResponse productId: " + productId);
+
+                goToUrl("javascript:cordova.fireDocumentEvent('onRestoreCompleted', {'id': '" + productId + "'})");
+
+//                goToUrl("javascript:cordova.fireDocumentEvent('onRestoreCompleted', { 'purchase':'" + purchase + "','id':'" + purchase.getSkus() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','orderID':'" + purchase.getOrderId() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'})");
 //                goToUrl("javascript:cordova.fireDocumentEvent('onInitCompleted');");
 
                 if(!purchase.isAcknowledged()){
