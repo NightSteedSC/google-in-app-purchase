@@ -109,9 +109,6 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
 
                 goToUrl("javascript:cordova.fireDocumentEvent('onRestoreCompleted', {'id': '" + productId + "'})");
 
-//                goToUrl("javascript:cordova.fireDocumentEvent('onRestoreCompleted', { 'purchase':'" + purchase + "','id':'" + purchase.getSkus() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','orderID':'" + purchase.getOrderId() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'})");
-//                goToUrl("javascript:cordova.fireDocumentEvent('onInitCompleted');");
-
                 if(!purchase.isAcknowledged()){
                     consumeProduct(purchase);
                 }
@@ -357,7 +354,7 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
         Log.d(TAG, "onStart: ");
         super.onStart();
         if (billingClient != null) {
-             restoreProducts();
+//             restoreProducts();
         }
     }
 
@@ -366,7 +363,7 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
         Log.d(TAG, "onResume: ");
         super.onResume(multitasking);
         if (billingClient != null) {
-              restoreProducts();
+//              restoreProducts();
         }
     }
 
