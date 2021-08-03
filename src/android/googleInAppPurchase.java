@@ -322,6 +322,7 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
     public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
 
         Log.d(TAG, "onBillingSetupFinished: " + billingResult.getResponseCode());
+        goToUrl("javascript:cordova.fireDocumentEvent('onInitCompleted', {})");
         if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
             restoreProducts();
         }
