@@ -42,12 +42,15 @@
     exports.purchaseProduct = function (ID, TYPE, success, error) {
         exec(success, error, 'googleInAppPurchase','purchaseProduct',[ID,TYPE]);
     };
-    exports.consumeProduct = function (Purchase, success, error) {
-        exec(success, error, 'googleInAppPurchase','consumeProduct',[Purchase]);
+    exports.consumeProduct = function (ID, success, error) {
+        exec(success, error, 'googleInAppPurchase','consumeProduct',[ID]);
     };
     exports.restoreProducts = function (Purchase, success, error) {
         exec(success, error, 'googleInAppPurchase','restoreProducts',[Purchase]);
     };
     exports.acknowledgePurchase = function (Purchase , success, error) {
         exec(success, error, 'googleInAppPurchase','acknowledgePurchase',[Purchase]);
+    };
+    exports.sendRegisteredProductID = function (productId_ , success, error) {
+        exec(success, error, 'googleInAppPurchase','sendRegisteredProductID',[productId_]);
     };

@@ -82,7 +82,11 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
             });
         } else if (action.equals("initBilling")) {
             initBilling(callbackContext, args);
-        } else if (action.equals("restoreProducts")) {
+        }
+        else if (action.equals("sendRegisteredProductID")) {
+            sendSkuDetailsFromProductID(args);
+        }
+        else if (action.equals("restoreProducts")) {
             restoreProducts();
         } else if (action.equals("consumeProduct")) {
             consumeProduct(lastPurchase);
@@ -109,6 +113,9 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
 
                 goToUrl("javascript:cordova.fireDocumentEvent('onRestoreCompleted', {'id': '" + productId + "'})");
 
+//                goToUrl("javascript:cordova.fireDocumentEvent('onRestoreCompleted', { 'purchase':'" + purchase + "','id':'" + purchase.getSkus() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','orderID':'" + purchase.getOrderId() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'})");
+//                goToUrl("javascript:cordova.fireDocumentEvent('onInitCompleted');");
+
                 if(!purchase.isAcknowledged()){
                     consumeProduct(purchase);
                 }
@@ -116,6 +123,8 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
             }
         }
     };
+
+//    This listener receives updates for all purchases in your app.
 
     private PurchasesUpdatedListener purchasesUpdatedListener = new PurchasesUpdatedListener() {
         @Override
@@ -165,6 +174,29 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
         Log.d(TAG, "billingResult getResponseCode: " + billingResult.getResponseCode());
     }
 
+    private void sendSkuDetailsFromProductID(JSONArray args){
+        try {
+            String productID = args.getString(0);
+            List<String> skuList = new ArrayList<> ();
+            skuList.add(productID);
+            params = SkuDetailsParams.newBuilder().setSkusList(skuList).setType(BillingClient.SkuType.INAPP);
+
+            billingClient.querySkuDetailsAsync(params.build(),     new SkuDetailsResponseListener() {
+                @Override
+                public void onSkuDetailsResponse(BillingResult billingResult,
+                                                 List<SkuDetails> skuDetailsList) {
+                    Log.d(TAG, "onSkuDetailsResponse sendSkuDetailsFromProductID: " + skuDetailsList);
+                    for (Object skuDetailsObject : skuDetailsList) {
+                        skuDetails = (SkuDetails) skuDetailsObject;
+                        goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','iconUrl':'" + skuDetails.getIconUrl() + "','introductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','freeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','originalPrice':'" + skuDetails.getOriginalPrice() + "','title':'" + skuDetails.getTitle() + "','priceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'})");
+                    }
+                }
+            });
+        } catch (JSONException ex){
+            Log.d(TAG, "sendSkuDetailsFromProductID ex: " + ex.getMessage());
+        }
+    }
+
     private void purchaseProduct(final CallbackContext callbackContext, final JSONArray data) throws JSONException {
         String localID = data.getString(0);
         String type = data.getString(1);
@@ -201,7 +233,7 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
                     for (Object skuDetailsObject : skuDetailsList) {
 
                         skuDetails = (SkuDetails) skuDetailsObject;
-                        goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','IconUrl':'" + skuDetails.getIconUrl() + "','IntroductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','FreeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','OriginalPrice':'" + skuDetails.getOriginalPrice() + "','Title':'" + skuDetails.getTitle() + "','PriceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'})");
+                        goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','iconUrl':'" + skuDetails.getIconUrl() + "','introductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','freeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','originalPrice':'" + skuDetails.getOriginalPrice() + "','title':'" + skuDetails.getTitle() + "','priceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'})");
                         BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder().setSkuDetails(skuDetails).build();
                         Log.d(TAG, "launchBillingFlow: ");
 
@@ -231,7 +263,7 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
                     for (Object skuDetailsObject : skuDetailsList) {
 
                         skuDetails = (SkuDetails) skuDetailsObject;
-                        goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','IconUrl':'" + skuDetails.getIconUrl() + "','IntroductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','FreeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','OriginalPrice':'" + skuDetails.getOriginalPrice() + "','Title':'" + skuDetails.getTitle() + "','PriceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'})");
+                        goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','iconUrl':'" + skuDetails.getIconUrl() + "','introductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','freeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','originalPrice':'" + skuDetails.getOriginalPrice() + "','title':'" + skuDetails.getTitle() + "','priceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'})");
                         BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder().setSkuDetails(skuDetails).build();
                         Log.d(TAG, "launchBillingFlow: ");
 
@@ -264,6 +296,9 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
             public void onConsumeResponse(BillingResult billingResult, String purchaseToken) {
                 if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                     // Handle the success of the consume operation.
+                    Log.d(TAG, "consumeProduct SUCCESS: ");
+                } else {
+                    Log.d(TAG, "consumeProduct FAILED billingResult.getResponseCode(): " + billingResult.getResponseCode() );
                 }
             }
         };
@@ -322,7 +357,6 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
     public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
 
         Log.d(TAG, "onBillingSetupFinished: " + billingResult.getResponseCode());
-        goToUrl("javascript:cordova.fireDocumentEvent('onInitCompleted', {})");
         if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
             restoreProducts();
         }
@@ -332,30 +366,15 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
     public void onBillingServiceDisconnected() {
         goToUrl("javascript:cordova.fireDocumentEvent('onBillingError',{ 'error':'" + "Billing Service Disconnected" + "});");
         Log.d(TAG, "onBillingServiceDisconnected: ");
+        billingClient.startConnection(this);
     }
-
-//    @Override
-//    public void onSkuDetailsResponse(@NonNull BillingResult billingResult, @Nullable List<SkuDetails> list) {
-//        if (list != null) {
-//            for (Object skuDetailsObject : list) {
-//                skuDetails = (SkuDetails) skuDetailsObject;
-//                goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "','description':'" + skuDetails.getDescription() + "','IconUrl':'" + skuDetails.getIconUrl() + "','IntroductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','FreeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','OriginalPrice':'" + skuDetails.getOriginalPrice() + "','Title':'" + skuDetails.getTitle() + "','PriceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'});");
-//                BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder().setSkuDetails(skuDetails).build();
-//                Log.d(TAG, "launchBillingFlow: ");
-//
-//                billingClient.launchBillingFlow(cordova.getActivity(), billingFlowParams).getResponseCode();
-//            }
-//        }
-//    }
-
-    //^^^^^^^^^^^^^^^^^^^^^^^^ LAST PART ^^^^^^^^^^^^^^^^^^^^^^^^\\
 
     @Override
     public void onStart() {
         Log.d(TAG, "onStart: ");
         super.onStart();
         if (billingClient != null) {
-//             restoreProducts();
+             restoreProducts();
         }
     }
 
@@ -364,7 +383,7 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
         Log.d(TAG, "onResume: ");
         super.onResume(multitasking);
         if (billingClient != null) {
-//              restoreProducts();
+              restoreProducts();
         }
     }
 
