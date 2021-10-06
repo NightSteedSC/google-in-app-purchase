@@ -116,9 +116,9 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
 //                goToUrl("javascript:cordova.fireDocumentEvent('onRestoreCompleted', { 'purchase':'" + purchase + "','id':'" + purchase.getSkus() + "','token':'" + purchase.getPurchaseToken() + "','signature':'" + purchase.getSignature() + "','acknowledge':'" + purchase.isAcknowledged() + "','orderID':'" + purchase.getOrderId() + "','state':'" + purchase.getPurchaseState() + "','packageName':'" + purchase.getPackageName() + "'})");
 //                goToUrl("javascript:cordova.fireDocumentEvent('onInitCompleted');");
 
-                if(!purchase.isAcknowledged()){
-                    consumeProduct(purchase);
-                }
+  //              if(!purchase.isAcknowledged()){
+  //                consumeProduct(purchase);
+  //          }
 
             }
         }
