@@ -189,14 +189,18 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
                 public void onSkuDetailsResponse(BillingResult billingResult,
                                                  List<SkuDetails> skuDetailsList) {
                     Log.d(TAG, "onSkuDetailsResponse sendSkuDetailsFromProductID: " + skuDetailsList);
-                    for (Object skuDetailsObject : skuDetailsList) {
-                        skuDetails = (SkuDetails) skuDetailsObject;
-                        goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "', 'productPrice': '" + skuDetails.getPrice() + "','description':'" + skuDetails.getDescription() + "','iconUrl':'" + skuDetails.getIconUrl() + "','introductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','freeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','originalPrice':'" + skuDetails.getOriginalPrice() + "','title':'" + skuDetails.getTitle() + "','priceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'})");
+                    if(skuDetailsList != null){
+                        for (Object skuDetailsObject : skuDetailsList) {
+                            skuDetails = (SkuDetails) skuDetailsObject;
+                            goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "', 'productPrice': '" + skuDetails.getPrice() + "','description':'" + skuDetails.getDescription() + "','iconUrl':'" + skuDetails.getIconUrl() + "','introductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','freeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','originalPrice':'" + skuDetails.getOriginalPrice() + "','title':'" + skuDetails.getTitle() + "','priceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'})");
+                        }
                     }
                 }
             });
         } catch (JSONException ex){
             Log.d(TAG, "sendSkuDetailsFromProductID ex: " + ex.getMessage());
+        } catch (NullPointerException ex){
+             Log.d(TAG, "sendSkuDetailsFromProductID NullPointerException: " + ex.getMessage());
         }
     }
 
@@ -262,16 +266,17 @@ public class googleInAppPurchase extends CordovaPlugin implements BillingClientS
                                                  List<SkuDetails> skuDetailsList) {
 
                     Log.d(TAG, "onSkuDetailsResponse skuDetailsList: " + skuDetailsList);
+                    if(skuDetailsList != null){
+                        for (Object skuDetailsObject : skuDetailsList) {
 
-                    for (Object skuDetailsObject : skuDetailsList) {
+                            skuDetails = (SkuDetails) skuDetailsObject;
+                            goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "', 'productPrice': '" + skuDetails.getPrice() + "','description':'" + skuDetails.getDescription() + "','iconUrl':'" + skuDetails.getIconUrl() + "','introductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','freeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','originalPrice':'" + skuDetails.getOriginalPrice() + "','title':'" + skuDetails.getTitle() + "','priceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'})");
+                            BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder().setSkuDetails(skuDetails).build();
+                            Log.d(TAG, "launchBillingFlow: ");
 
-                        skuDetails = (SkuDetails) skuDetailsObject;
-                        goToUrl("javascript:cordova.fireDocumentEvent('sendSkuDetails', { 'id':'" + skuDetails.getSku() + "', 'productPrice': '" + skuDetails.getPrice() + "','description':'" + skuDetails.getDescription() + "','iconUrl':'" + skuDetails.getIconUrl() + "','introductoryPrice':'" + skuDetails.getIntroductoryPrice() + "','freeTrialPeriod':'" + skuDetails.getFreeTrialPeriod() + "','originalPrice':'" + skuDetails.getOriginalPrice() + "','title':'" + skuDetails.getTitle() + "','priceCurrencyCode':'" + skuDetails.getPriceCurrencyCode() + "'})");
-                        BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder().setSkuDetails(skuDetails).build();
-                        Log.d(TAG, "launchBillingFlow: ");
-
-                        int responseCode = billingClient.launchBillingFlow(cordova.getActivity(), billingFlowParams).getResponseCode();
-                        Log.d(TAG, "onSkuDetailsResponse responseCode: " + responseCode);
+                            int responseCode = billingClient.launchBillingFlow(cordova.getActivity(), billingFlowParams).getResponseCode();
+                            Log.d(TAG, "onSkuDetailsResponse responseCode: " + responseCode);
+                        }
                     }
 
                 }
